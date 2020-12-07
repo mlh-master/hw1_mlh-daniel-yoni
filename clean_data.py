@@ -17,7 +17,7 @@ def rm_ext_and_nan(CTG_features, extra_feature):
     :return: A dictionary of clean CTG called c_ctg
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:------------------------------
-
+    c_ctg = {col: (CTG_features[col].apply(pd.to_numeric, args=('coerce',))).dropna() for col in CTG_features if col!=extra_feature}
     # --------------------------------------------------------------------------
     return c_ctg
 
@@ -31,8 +31,16 @@ def nan2num_samp(CTG_features, extra_feature):
     """
     c_cdf = {}
     # ------------------ IMPLEMENT YOUR CODE HERE:------------------------------
-
-    # -------------------------------------------------------------------------
+    for key in CTG_features:
+        if key != extra_feature:
+            prev_val = CTG_features[key]
+            curr_val = pd.to_numeric(prev_val,errors='coerce')
+            for i in range(len(curr_val)):
+                while np.isnan(curr_val.values[i]):
+                    curr_val.values[i] =np.random.choice(curr_val)
+        c_cdf[key] = curr_val
+    del c_cdf[extra_feature]   
+        # -------------------------------------------------------------------------
     return pd.DataFrame(c_cdf)
 
 
@@ -43,7 +51,10 @@ def sum_stat(c_feat):
     :return: Summary statistics as a dicionary of dictionaries (called d_summary) as explained in the notebook
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:------------------------------
-
+    d_summary={}
+    for key in c_feat:
+            curr_dict = {'Min' : np.amin(c_feat[key]) , 'Max' : np.amax(c_feat[key]), 'Median' : np.median(c_feat[key]), 'Q1' : np.quantile(c_feat[key], 0.25) , 'Q3'  : np.quantile(c_feat[key], 0.75)}
+            d_summary.update({key: curr_dict})
     # -------------------------------------------------------------------------
     return d_summary
 
@@ -57,7 +68,8 @@ def rm_outlier(c_feat, d_summary):
     """
     c_no_outlier = {}
     # ------------------ IMPLEMENT YOUR CODE HERE:------------------------------
-
+    for key , value in c_feat.items():
+        c_no_outlier[key]= value[(c_feat[key]<= d_summary[key]['Q3']+1.5*(d_summary[key]['Q3']-d_summary[key]['Q1'])) & (c_feat[key]>=  d_summary[key]['Q1']-1.5*(d_summary[key]['Q3']-d_summary[key]['Q1']))]
     # -------------------------------------------------------------------------
     return pd.DataFrame(c_no_outlier)
 
@@ -71,7 +83,7 @@ def phys_prior(c_cdf, feature, thresh):
     :return: An array of the "filtered" feature called filt_feature
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
-
+    filt_feature=c_cdf[feature][c_cdf[feature]<=thresh]
     # -------------------------------------------------------------------------
     return filt_feature
 
@@ -87,6 +99,24 @@ def norm_standard(CTG_features, selected_feat=('LB', 'ASTV'), mode='none', flag=
     """
     x, y = selected_feat
     # ------------------ IMPLEMENT YOUR CODE HERE:------------------------------
-
-    # -------------------------------------------------------------------------
+    import matplotlib.pyplot as plt
+    nsd_res={}
+    if( mode=='none'):
+        nsd_res=CTG_features.to_dict()
+    if(mode=='standard'):
+        nsd_res={x: (CTG_features[x]-np.mean(CTG_features[x]))/np.std(CTG_features[x]) for x in CTG_features}
+    if(mode=='MinMax'):  
+        nsd_res = {x: (CTG_features[x]-np.amin(CTG_features[x]))/(np.amax(CTG_features[x])-np.amin(CTG_features[x])) for x in CTG_features}
+    if(mode=='mean'): 
+        nsd_res = {x:(CTG_features[x]-np.mean(CTG_features[x]))/(np.amax(CTG_features[x])-np.amin(CTG_features[x])) for x in CTG_features }
+    if(flag):
+        pd.DataFrame(nsd_res)[[x,y]].plot(kind='hist',bins=100)
+        plt.ylabel('Counts')
+        plt.xlabel('Values')
+        plt.title(mode)
+        plt.legend()
+        plt.show()
+        
+        
+    # --------------------------------------------------------------------------
     return pd.DataFrame(nsd_res)

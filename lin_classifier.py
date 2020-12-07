@@ -19,7 +19,12 @@ def pred_log(logreg, X_train, y_train, X_test, flag=False):
     :return: A two elements tuple containing the predictions and the weightning matrix
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
-
+    logreg.fit(X_train,y_train)
+    if flag:
+        y_pred_log=logreg.predict_proba(X_test)
+    else:
+        y_pred_log=logreg.predict(X_test)
+    w_log=logreg.coef_
     # -------------------------------------------------------------------------
     return y_pred_log, w_log
 
@@ -83,10 +88,15 @@ def cv_kfold(X, y, C, penalty, K, mode):
             for train_idx, val_idx in kf.split(X, y):
                 x_train, x_val = X.iloc[train_idx], X.iloc[val_idx]
         # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
-
+                y_train, y_val = y[train_idx], y[val_idx]
+                x_train= nsd(x_train, mode=mode)
+                x_val = nsd(x_val, mode=mode)
+                y_pred_val,_ = pred_log(logreg,x_train,y_train,x_val,flag=True)
+                loss_val_vec[k] = log_loss(y_val,y_pred_val)
+                k=k+1
+            validation_dict.append({'C':c , 'penalty':p, 'mu':loss_val_vec.mean() , 'sigma':loss_val_vec.std()})
         # --------------------------------------------------------------------------
     return validation_dict
-
 
 def odds_ratio(w, X, selected_feat='LB'):
     """
@@ -98,7 +108,9 @@ def odds_ratio(w, X, selected_feat='LB'):
              odds_ratio: the odds ratio of the selected feature and label
     """
     # ------------------ IMPLEMENT YOUR CODE HERE:-----------------------------
-
+    col=X.columns.get_loc(selected_feat)
+    odds= np.median(np.exp(np.matmul(X.values,w[0,:].transpose())))
+    odd_ratio=np.sum(np.exp(w[0,col]))
     # --------------------------------------------------------------------------
 
     return odds, odd_ratio
